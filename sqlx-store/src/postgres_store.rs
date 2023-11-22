@@ -126,7 +126,14 @@ impl ExpiredDeletion for PostgresStore {
         let query = format!(
             r#"
             delete from "{schema_name}"."{table_name}"
-            where expiry_date < (now() at time zone 'utc')
+            where id in (
+              select id from "{schema_name}"."{table_name}"
+              where expiry_date < (now() at time zone 'utc')
+              order by id asc
+              limit 10
+              for update
+              skip locked
+            );
             "#,
             schema_name = self.schema_name,
             table_name = self.table_name
